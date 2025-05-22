@@ -49,6 +49,11 @@ app.post('/chat', async (req, res) => {
   const selectedModel = getBestModel();
   console.log(`Using model: ${selectedModel}`);
   
+  // Helper function to remove HTML tags
+  function stripHtmlTags(str) {
+    return str.replace(/<\/?[^>]+(>|$)/g, "");
+  }
+
   try {
     const groqResponse = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
@@ -86,23 +91,16 @@ app.post('/chat', async (req, res) => {
     );
 
     const botReply = groqResponse.data.choices[0]?.message?.content;
-    
+
     if (!botReply) {
       throw new Error('Empty response from Groq API');
-    } 
-    const formattedReply = botReply
-      .split('\n\n') // Split by double newlines (paragraphs)
-      .map(paragraph => paragraph.trim()) // Trim whitespace
-      .filter(paragraph => paragraph.length > 0) // Remove empty paragraphs
-      .join('</p><p>');
+    }
 
-    res.json({ 
-      reply: formattedReply
-    //   model: groqResponse.data.model,
-    //   tokens_used: groqResponse.data.usage?.total_tokens,
-    //   response_time: `${groqResponse.headers['x-response-time'] || 'unknown'} ms`
-    });
-    
+    // Clean reply by stripping HTML tags and trimming whitespace
+    const cleanReply = stripHtmlTags(botReply).trim();
+
+    res.json({ reply: cleanReply });
+
   } catch (error) {
     console.error('API Error:', error);
     
@@ -123,6 +121,7 @@ app.post('/chat', async (req, res) => {
     });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Education Loan Chatbot API running on http://localhost:${PORT}`);
